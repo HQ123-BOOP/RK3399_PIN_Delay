@@ -1,0 +1,44 @@
+name: Release with SHA256
+
+on:
+  push:
+    tags:
+      - 'v*'          # 只对 v 开头的 tag 触发，比如 v1.0.0
+  workflow_dispatch:  # 可选：允许手动触发测试
+
+permissions:
+  contents: write     # 创建 Release 需要
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Generate SHA256
+        run: |
+          set -e
+          # 校验目标文件存在
+          test -f "pin delay.CSV" || { echo "找不到 pin delay.CSV"; exit 1; }
+
+          # 生成 SHA256 文件（注意：用相对路径，避免把绝对路径写进去）
+          sha256sum "pin delay.CSV" > "pin delay.CSV.sha256"
+
+          # 打印到日志方便查看
+          cat "pin delay.CSV.sha256"
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: pin-delay-${{ github.ref_name }}
+          path: |
+            pin delay.CSV
+            pin delay.CSV.sha256
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            pin delay.CSV
+            pin delay.CSV.sha256
+          generate_release_notes: true
